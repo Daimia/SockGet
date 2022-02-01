@@ -29,7 +29,12 @@ namespace SockGet.Client
 
         public bool Check(string address, int port)
         {
-            var ipAddress = IPAddress.Parse(address);
+            if(!IPAddress.TryParse(address, out var ipAddress))
+                if (Uri.TryCreate(address, UriKind.Absolute, out var uri))
+                    ipAddress = Dns.GetHostEntry(uri.Host).AddressList[0];
+                else
+                    ipAddress = Dns.GetHostEntry(address).AddressList[0];
+   
             Address = address;
             Port = port;
             CloseReason = null;
@@ -74,7 +79,12 @@ namespace SockGet.Client
         }
         public bool Connect(string address, int port)
         {
-            var ipAddress = IPAddress.Parse(address);
+            if (!IPAddress.TryParse(address, out var ipAddress))
+                if (Uri.TryCreate(address, UriKind.Absolute, out var uri))
+                    ipAddress = Dns.GetHostEntry(uri.Host).AddressList[0];
+                else
+                    ipAddress = Dns.GetHostEntry(address).AddressList[0];
+
             Address = address;
             Port = port;
 
