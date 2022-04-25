@@ -71,7 +71,7 @@ namespace SockGet.Server
                     {
                         socket.Listen(1);
                         var sock = socket.Accept();
-
+       
                         lock(this)
                         {
                             var client = new SgClient<T>(sock);
@@ -80,9 +80,7 @@ namespace SockGet.Server
                                 var args = new ClientAuthRequestedEventArgs<T>(client, e.AuthToken, e.Response);
                                 ClientAuthRequested?.Invoke(this, args);
 
-                                e.Response = args.Response;
-                                e.Reject = args.Reject || (args.Response != null && args.Response.IsError);
-                                if (!e.Reject)
+                                if (args.Response == null || args.Response.Status == Enums.Status.OK)
                                 {
                                     client.Disconnected += (s1, e1) =>
                                     {
@@ -91,7 +89,7 @@ namespace SockGet.Server
                                             clients.Remove(client);
                                         }
 
-                                        ClientDisconnected?.Invoke(this, new ClientConnectionEventArgs<T>(client , e1.Reason));
+                                        ClientDisconnected?.Invoke(this, new ClientConnectionEventArgs<T>(client, e1.Reason));
                                     };
 
                                     lock (this)
@@ -99,7 +97,13 @@ namespace SockGet.Server
                                         clients.Add(client);
                                     }
 
+                                    e.Response = args.Response;
                                     ClientConnected?.Invoke(this, new ClientConnectionEventArgs<T>(client));
+                                }
+                                else
+                                {
+                                    e.Response = args.Response;
+                                    e.Reject = true;
                                 }
                             };
                             client.Listen();
