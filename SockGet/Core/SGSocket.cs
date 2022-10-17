@@ -56,6 +56,7 @@ namespace SockGet.Core
             set => Tags[key] = value;
         }
 
+
         public void Send(Message msg, Status status = Status.OK)
         {
             var stream = msg.Build(status, Enums.Type.Message, Role.Message, 0);
@@ -65,7 +66,22 @@ namespace SockGet.Core
         {
             var id = (uint)Interlocked.Increment(ref counter);
             var stream = msg.Build(status, Enums.Type.Message, Role.Request, id);
-            return TransmitReceive(stream, id , timeout);
+            return TransmitReceive(stream, id, timeout);
+        }
+
+        public void Send<T1>() where T1 : new()
+        {
+            var body = new T1();
+            Send(body.GetType().FullName, body, Status.OK);
+        }
+
+        public void Send<T1>(T1 body, Status status = Status.OK)
+        {
+            Send(body.GetType().FullName, body, status);
+        }
+        public void Send(object body, Status status = Status.OK)
+        {
+            Send(body.GetType().FullName, body, status);
         }
 
         public void Send(string head, object body, Status status = Status.OK)
@@ -75,11 +91,75 @@ namespace SockGet.Core
 
         public Result Request(string head, object body, Status status = Status.OK, int timeout = -1)
         {
-            return Request(new Message().Load(head, body), status ,timeout);
+            return Request(new Message().Load(head, body), status, timeout);
+        }
+        public Result Request(object body, Status status = Status.OK, int timeout = -1)
+        {
+            var head = body.GetType().FullName;
+            return Request(new Message().Load(head, body), status, timeout);
         }
 
-        public Task<Result> RequestAsync(string head, object body, Status status = Status.OK, int timeout = -1) => Task.Run(()=> Request(head, body, status, timeout));
-        public Task SendAsync(string head, object body, Status status = Status.OK) => Task.Run(()=> Send(head, body, status));
+        public Task<Result> RequestAsync(object body, Status status = Status.OK, int timeout = -1) => Task.Run(() => Request(body, status, timeout));
+        public Task<Result> RequestAsync(string head, object body, Status status = Status.OK, int timeout = -1) => Task.Run(() => Request(head, body, status, timeout));
+        public Task SendAsync(string head, object body, Status status = Status.OK) => Task.Run(() => Send(head, body, status));
+        public Task SendAsync(object body, Status status = Status.OK) => Task.Run(() => Send(body, status));
+
+        public SgSocket<T> On<T1>(Action<T1> action)
+        {
+            DataReceived += (sender, args) =>
+            {
+                if (args.Data.Head == typeof(T1).FullName)
+                {
+                    action(args.Data.As<T1>());
+                }
+            };
+            return this;
+        }
+
+        public Task<T1> When<T1>()
+        {
+            var tcs = new TaskCompletionSource<T1>();
+            EventHandler<DataReceivedEventArgs> eh = null;
+            eh = (sender, args) =>
+            {
+                if (args.Data.Head == typeof(T1).FullName)
+                {
+                    DataReceived -= eh;
+                    tcs.SetResult(args.Data.As<T1>());
+                }
+            };
+            DataReceived += eh;
+            return tcs.Task;
+        }
+
+
+        // Dictionary<string, (Action<object>, System.Type)> dict;
+        // public SgSocket<T> On1<T1>(Action<T1> action)
+        // {
+        //     var type = typeof(T1).FullName;
+        //     dict[type] = ((o) => action((T1)o), typeof(T1));
+        //     return this;
+        // }
+
+        public void InitializeInternalRouting()
+        {
+            // dict = new Dictionary<string, (Action<object>, System.Type)>();
+            // 
+            // DataReceived += (sender, args) =>
+            // {
+            //     if(dict.TryGetValue(args.Data.Head, out var found))
+            //     {
+            //         var t = found.Item2;
+            // 
+            //         found.Item1.Invoke(args.Data.As(t));
+            //     }else
+            //     {
+            //         throw new Exception("Bu neyin kafasi " + args.Data.Head);
+            //     }    
+            // };
+        }
+
+
 
 
         public void Sync(int timeout = -1)
