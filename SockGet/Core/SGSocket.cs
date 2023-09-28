@@ -37,7 +37,7 @@ namespace SockGet.Core
         public DataReceiver Receiver { get; set; }
         public bool IsAuthorised { get; protected set; }
         public Dictionary<string, string> Tags => tags;
-      
+
         public string AuthToken { get; set; }
         public void Close(int timeout = 0, string reason = null)
         {
@@ -170,7 +170,7 @@ namespace SockGet.Core
             msg.Load("tags", tags);
 
             var stream = msg.Build(Status.OK, Enums.Type.Sync, Role.Request, id);
-            TransmitReceive(stream, id , timeout);
+            TransmitReceive(stream, id, timeout);
         }
         public bool Heartbeat(string echo, int interval, int timeout)
         {
@@ -211,8 +211,7 @@ namespace SockGet.Core
 
         internal void Listen()
         {
-            Task.Run((() =>
-            {
+            Task.Run(() => {
                 try
                 {
                     while (IsConnected())
@@ -241,7 +240,7 @@ namespace SockGet.Core
                                 var sgstream = new SgSocketStream(socket, header.bodyLength);
 
                                 Stream stream;
-                                if(sgstream.Length > 0)
+                                if (sgstream.Length > 0)
                                 {
                                     if (type == Type.Message && Receiver != null)
                                     {
@@ -255,11 +254,12 @@ namespace SockGet.Core
                                         sgstream.CopyTo(stream);
                                         stream.Position = 0;
                                     }
-                                }else
+                                }
+                                else
                                 {
                                     stream = new MemoryStream();
                                 }
-                                
+
 
                                 var received = new Result()
                                 {
@@ -332,7 +332,7 @@ namespace SockGet.Core
                     socket?.Dispose();
                     socket = null;
                 }
-            }));
+            });
         }
 
         bool HeartbeatListening { get; set; } = false;
@@ -402,7 +402,7 @@ namespace SockGet.Core
             {
                 case Enums.Type.Message:
                     {
-                        var args = new DataReceivedEventArgs(received, true,  Response.Empty);
+                        var args = new DataReceivedEventArgs(received, true, Response.Empty);
                         Task.Run(() =>
                         {
                             DataReceived?.Invoke(this, args);
@@ -416,15 +416,15 @@ namespace SockGet.Core
                     {
                         var recvTags = received.As<Dictionary<string, string>>();
 
-                        if(recvTags != null)
-                        foreach (var pair in recvTags)
-                        {
-                            tags[pair.Key] = pair.Value;
-                        }
+                        if (recvTags != null)
+                            foreach (var pair in recvTags)
+                            {
+                                tags[pair.Key] = pair.Value;
+                            }
 
                         var args = new AuthRequestedEventArgs(received.Head);
                         AuthRequested?.Invoke(this, args);
- 
+
 
                         var response = args.Response ?? Response.Empty;
                         if (args.Reject || response.IsError)
@@ -440,7 +440,7 @@ namespace SockGet.Core
                 case Enums.Type.Heartbeat:
                     {
                         Transmit(new Message().Load(received.Head, new byte[0]).Build(Status.OK, Type.Heartbeat, Role.Response, header.id));
- 
+
                         var (interval, timeout) = received.As<(int, int)>();
                         if (interval > 0)
                         {
@@ -558,7 +558,7 @@ namespace SockGet.Core
                 return null;
             }
         }
- 
+
         internal void Authorize(Message data, bool accept)
         {
             Transmit(data.Build(accept ? Status.OK : Status.Rejected, Type.Auth, Role.Response, 0));
@@ -614,7 +614,7 @@ namespace SockGet.Core
 
             return IsAuthorised;
         }
-    
+
         //internal void Response(uint id, Message message, Enums.Type token, Status status) => Send(message, token, status, Enums.Transmission.Response, id);
         //internal Task ResponseAsync(uint id, Message message, Enums.Type token, Status status) => Task.Run(() => Response(id, message, token, status));
     }
