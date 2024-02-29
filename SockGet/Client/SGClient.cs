@@ -27,27 +27,30 @@ namespace SockGet.Client
     {
         public int Port { get; protected set; }
         public string Address { get; protected set; }
-        public SgClient() 
+        public SgClient()
         {
-      
+
         }
 
         public bool Check(string address, int port)
         {
-            var ipAddress = IPAddress.Parse(address);
-            Address = address;
-            Port = port;
+            //var ipAddress = IPAddress.Parse(address);
+            //Address = address;
+            //Port = port;
+
+            //socket = new Socket(ipAddress.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
+            //IPEndPoint localEndPoint = new IPEndPoint(ipAddress, port);
+
             CloseReason = null;
 
-            socket = new Socket(ipAddress.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
-            IPEndPoint localEndPoint = new IPEndPoint(ipAddress, port);
-
+            socket = new Socket(SocketType.Stream, ProtocolType.Tcp);
             try
             {
-                socket.Connect(localEndPoint);
+                //socket.Connect(localEndPoint);
+                socket.Connect(address, port);
                 socket.Close();
                 socket = null;
-                return true; 
+                return true;
             }
             catch (Exception ex)
             {
@@ -59,12 +62,13 @@ namespace SockGet.Client
         {
             var t = Task.Run(() => Check(address, port));
             var finsihed = await Task.WhenAny(t, Task.Delay(timeout));
-            if(finsihed == t)
+            if (finsihed == t)
             {
                 if (t.IsFaulted)
                     throw t.Exception.InnerException ?? t.Exception;
                 return t.Result;
-            }else
+            }
+            else
             {
                 Close();
                 throw new ConnectionTimeoutException("Connection timed out.");
@@ -76,16 +80,13 @@ namespace SockGet.Client
         }
         public bool Connect(string address, int port)
         {
-            var ipAddress = IPAddress.Parse(address);
             Address = address;
             Port = port;
 
-            socket = new Socket(ipAddress.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
-            IPEndPoint localEndPoint = new IPEndPoint(ipAddress, port);
-
+            socket = new Socket(SocketType.Stream, ProtocolType.Tcp);
             try
             {
-                socket.Connect(localEndPoint);
+                socket.Connect(address, port);
             }
             catch (Exception ex)
             {
